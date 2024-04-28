@@ -26,6 +26,7 @@
     "eslint": "^8.57.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-jest": "^27.9.0",
     "html-webpack-plugin": "^5.6.0",
     "postcss-loader": "^8.1.1",
     "prettier": "^3.2.5",
@@ -38,6 +39,10 @@
     "workbox-webpack-plugin": "^7.0.0"
   },
   "dependencies": {
-    "bootstrap": "^5.3.3"
+    "axios": "^1.6.8",
+    "bootstrap": "^5.3.3",
+    "i18next": "^23.11.2",
+    "on-change": "^5.0.1",
+    "yup": "^1.4.0"
   }
 }

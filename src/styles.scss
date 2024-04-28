@@ -1,1 +1,9 @@
 @import "~bootstrap/scss/bootstrap";
+
+.isInvalid {
+    border-color: red;
+}
+
+.errorMsg {
+    color: red;
+}
