@@ -1,23 +1,26 @@
 import onChange from 'on-change';
 import i18n from 'i18next';
-import resources from './locales/index.js';
 import * as yup from 'yup';
 import axios from 'axios';
-import { padStart, uniqueId } from 'lodash';
+import { uniqueId } from 'lodash';
+import resources from './locales/index.js';
 import { render, renderPosts } from './render.js';
 
 const parsePosts = (parsedData, feedID) => {
   const posts = [];
-  
-  parsedData.querySelectorAll('item').forEach(item => {
+
+  parsedData.querySelectorAll('item').forEach((item) => {
     const title = item.querySelector('title').textContent;
     const description = item.querySelector('description').textContent;
     const link = item.querySelector('link').textContent;
     const id = uniqueId();
+    const newPost = {
+      id, feedID, title, description, link,
+    };
 
-    posts.push({ id, feedID, title, description, link });
+    posts.push(newPost);
   });
-  
+
   return posts;
 };
 
@@ -30,12 +33,10 @@ const addProxy = (url) => {
   return proxyUrl.toString();
 };
 
-const makeRequest = (link) => {
-  return axios.get(addProxy(link))
-    .catch(_err => {
-      throw Error('networkError');
-    });
-};
+const makeRequest = (link) => axios.get(addProxy(link))
+  .catch(() => {
+    throw Error('networkError');
+  });
 
 const parseResponse = (state, response) => {
   const responseContent = response.data.contents;
@@ -46,7 +47,7 @@ const parseResponse = (state, response) => {
     throw new Error('notRss');
   }
 
-  const feedID = state.feeds.map(feed => feed.link).indexOf(response.data.status.url);
+  const feedID = state.feeds.map((feed) => feed.link).indexOf(response.data.status.url);
   const feedTitle = parsedData.querySelector('title').textContent;
   const feedDescription = parsedData.querySelector('description').textContent;
   const feed = {
@@ -56,25 +57,27 @@ const parseResponse = (state, response) => {
   };
   const posts = parsePosts(parsedData, feedID);
 
-  return {feed, posts};
+  return {
+    feed, posts,
+  };
 };
 
 const updating = (state, i18nInstance) => {
-  if (state.feeds.length === 0) return ;
+  if (state.feeds.length === 0) return null;
 
-  Promise.all(state.feeds.map(feed => makeRequest(feed.link)))
-      .then((responses) => {
-        responses.forEach((response) => {
-          const oldLinks = state.posts.map(post => post.link);
-          const { posts } = parseResponse(state, response);
-          const newPosts = posts.filter(post => !oldLinks.includes(post.link));
-          state.posts = [...newPosts, ...state.posts];
-        });
-        renderPosts(state, i18nInstance);
-      })
-      .catch((err) => {
-        console.log(`updating: ${ i18nInstance.t(`errors.${err.message}`) }`);
+  return Promise.all(state.feeds.map((feed) => makeRequest(feed.link)))
+    .then((responses) => {
+      responses.forEach((response) => {
+        const oldLinks = state.posts.map((post) => post.link);
+        const { posts } = parseResponse(state, response);
+        const newPosts = posts.filter((post) => !oldLinks.includes(post.link));
+        state.posts = [...newPosts, ...state.posts];
       });
+      renderPosts(state, i18nInstance);
+    })
+    .catch((err) => {
+      console.log(`updating: ${i18nInstance.t(`errors.${err.message}`)}`);
+    });
 };
 
 export default () => {
@@ -83,7 +86,7 @@ export default () => {
       isSuccess: null,
       isValide: null,
       input: {
-          value: null,
+        value: null,
       },
       error: '',
     },
@@ -116,33 +119,31 @@ export default () => {
 
   const i18nInstance = i18n.createInstance();
   const makeSchema = (validatedLinks) => yup.string()
-        .required()
-        .url()
-        .notOneOf(validatedLinks);
-  
+    .required()
+    .url()
+    .notOneOf(validatedLinks);
+
   const watcher = onChange(state, ((path, value) => {
     if (path === 'form.input.value') {
-      const schema = makeSchema(state.feeds.map(feed => feed.link));
+      const schema = makeSchema(state.feeds.map((feed) => feed.link));
 
       schema.validate(value)
-          .then(() => {
-            return makeRequest(value);
-          })
-          .then((response) => {
-            state.form.isValide = true;
-            state.form.isSuccess = true;
-            const {feed, posts} = parseResponse(watcher, response);
-            state.posts = [...posts, ...state.posts];
-            state.feeds.push(feed);
-          }).catch((err) => {
-            state.form.error = i18nInstance.t(`errors.${err.message}`);
-            state.form.isValide = false;
-          })
-          .finally(() => {
-              render(state, i18nInstance);
-              state.form.error = '';
-              state.form.input.value = '';
-          });
+        .then(() => makeRequest(value))
+        .then((response) => {
+          state.form.isValide = true;
+          state.form.isSuccess = true;
+          const { feed, posts } = parseResponse(watcher, response);
+          state.posts = [...posts, ...state.posts];
+          state.feeds.push(feed);
+        }).catch((err) => {
+          state.form.error = i18nInstance.t(`errors.${err.message}`);
+          state.form.isValide = false;
+        })
+        .finally(() => {
+          render(state, i18nInstance);
+          state.form.error = '';
+          state.form.input.value = '';
+        });
     }
   }));
 
@@ -150,14 +151,14 @@ export default () => {
     lng: 'ru',
     debug: true,
     resources,
-  }).then(() => {    
+  }).then(() => {
     const submitHandler = (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);
       const inputValue = formData.get('url');
-      
+
       watcher.form.input.value = inputValue;
-    }
+    };
 
     state.elements.form.addEventListener('submit', submitHandler);
   });

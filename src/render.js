@@ -1,17 +1,17 @@
 const createButton = (id, state, instance) => {
   const button = document.createElement('button');
   const modalHadler = (e) => {
-    const post = state.posts.find(post => post.id === e.target.dataset.id);
-    const {modalBody, modalTitle, modalHref } = state.elements;
-    
-    modalTitle.textContent = post.title;
-    modalBody.textContent = post.description;
-    modalHref.href = state.feeds[post.feedID];
+    const currentPost = state.posts.find((post) => post.id === e.target.dataset.id);
+    const { modalBody, modalTitle, modalHref } = state.elements;
+
+    modalTitle.textContent = currentPost.title;
+    modalBody.textContent = currentPost.description;
+    modalHref.href = state.feeds[currentPost.feedID];
 
     e.target.previousSibling.classList.remove('fw-bold');
     e.target.previousSibling.classList.add('fw-normal');
-    
-    state.viewedPostIds.push(post.id);
+
+    state.viewedPostIds.push(currentPost.id);
   };
 
   button.setAttribute('type', 'button');
@@ -35,20 +35,20 @@ const createPosts = (state, instance) => {
     const linkHandler = ({ target }) => {
       target.classList.remove('fw-bold');
       target.classList.add('fw-normal');
-    }
+    };
 
     li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start', 'border-0', 'border-end-0');
-    
+
     a.setAttribute('href', post.link);
     a.setAttribute('data-id', post.id);
     a.setAttribute('target', '_blank');
     a.setAttribute('rel', 'noopener noreferrer');
     a.textContent = post.title;
-    
+
     if (state.viewedPostIds.includes(post.id)) {
-        a.classList.add('fw-normal');
+      a.classList.add('fw-normal');
     } else {
-        a.classList.add('fw-bold');
+      a.classList.add('fw-bold');
     }
 
     a.addEventListener('click', linkHandler);
@@ -73,7 +73,7 @@ const createFeeds = (state) => {
     p.classList.add('m-0', 'small', 'text-black-50');
     li.classList.add('list-group-item', 'border-0', 'border-end-0');
     p.textContent = feed.description;
-    
+
     li.append(feedTitle);
     li.append(p);
     feeds.push(li);
@@ -95,7 +95,7 @@ const createList = (itemsType, state, i18next) => {
 
   cardBody.append(cardTitle);
   card.append(cardBody);
-  
+
   cardTitle.textContent = i18next.t(`items.${itemsType}`);
 
   switch (itemsType) {
@@ -141,7 +141,7 @@ export const render = (state, instance) => {
     feedback.classList.remove('text-success');
     feedback.classList.add('text-danger');
   }
-  
+
   if (state.posts.length > 0) {
     renderFeeds(state, instance);
     renderPosts(state, instance);
