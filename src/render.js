@@ -137,7 +137,9 @@ export const render = (state, instance) => {
     feedback.classList.remove('text-danger');
     feedback.classList.add('text-success');
   } else {
-    console.log(123);
+    console.log('Error!');
+    console.log(state.form.input.value);
+
     feedback.textContent = state.form.error;
     feedback.classList.remove('text-success');
     feedback.classList.add('text-danger');
