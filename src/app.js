@@ -33,7 +33,7 @@ const addProxy = (url) => {
   return proxyUrl.toString();
 };
 
-const makeRequest = (link) => axios.get(addProxy(link))
+const makeRequest = (link) => axios.get(addProxy(link), { timeout: 5000 })
   .catch(() => {
     throw Error('networkError');
   });
