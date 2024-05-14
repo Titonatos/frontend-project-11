@@ -3,63 +3,19 @@ import i18n from 'i18next';
 import resources from './locales/index.js';
 import * as yup from 'yup';
 import axios from 'axios';
+import { padStart, uniqueId } from 'lodash';
+import { render, renderPosts } from './render.js';
 
-axios.defaults.cache = false;
-
-const validation = (url, links, i18Instance) => {
-  const schema = yup
-    .string()
-    .trim()
-    .required()
-    .url(i18Instance.t('invalidURLMsg'))
-    .notOneOf(links, i18Instance.t('duplicateErrorMsg'))
-    .validate(url);
-  return schema;
-};
-
-const render = (state) => {
-  if (!state.form.isValide) {
-    state.elementsUI.errorMsg.textContent = state.form.error;
-    state.elementsUI.input.classList.add('isInvalid');
-    
-  } else {
-    state.elementsUI.input.classList.remove('isInvalid');
-    state.elementsUI.errorMsg.textContent = '';
-    
-    state.elementsUI.form.reset();
-  }
-  
-  if (state.posts.length > 0) {
-    const ul = document.createElement('ul');
-    const container = document.querySelector('.feeds-container');
-    
-    state.posts.forEach(post => {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.textContent = post.title;
-      a.href = post.link;
-      li.append(a);
-      ul.append(li);
-    });
-    
-    container.innerHTML = '';
-    container.append(ul);
-  }
-};
-
-const init = (instance, state) => {
-  state.elementsUI.button.textContent = instance.t('buttonText');
-};
-
-const normolizePosts = (parsedPosts, feedID) => {
+const parsePosts = (parsedData, feedID) => {
   const posts = [];
   
-  parsedPosts.forEach(item => {
+  parsedData.querySelectorAll('item').forEach(item => {
     const title = item.querySelector('title').textContent;
     const description = item.querySelector('description').textContent;
     const link = item.querySelector('link').textContent;
-    
-    posts.push({ feedID, title, description, link });
+    const id = uniqueId();
+
+    posts.push({ id, feedID, title, description, link });
   });
   
   return posts;
@@ -67,116 +23,144 @@ const normolizePosts = (parsedPosts, feedID) => {
 
 const addProxy = (url) => {
   const proxyUrl = new URL('/get', 'https://allorigins.hexlet.app');
+
   proxyUrl.searchParams.append('disableCache', 'true');
   proxyUrl.searchParams.append('url', url);
+
   return proxyUrl.toString();
 };
 
 const makeRequest = (link) => {
-  console.log(addProxy(link));
   return axios.get(addProxy(link))
-    .catch(err => {
-      throw Error('invalidResourceMsg')
+    .catch(_err => {
+      throw Error('networkError');
     });
 };
 
-const getFeedPosts = (state, response) => {
+const parseResponse = (state, response) => {
   const responseContent = response.data.contents;
   const parser = new DOMParser();
-  const parsedPosts = parser.parseFromString(responseContent, 'text/xml').querySelectorAll('item');
-  const feedID = state.links.indexOf(response.data.status.url);
-  return normolizePosts(parsedPosts, feedID);
+  const parsedData = parser.parseFromString(responseContent, 'text/xml');
+
+  if (parsedData.querySelector('parsererror')) {
+    throw new Error('notRss');
+  }
+
+  const feedID = state.feeds.map(feed => feed.link).indexOf(response.data.status.url);
+  const feedTitle = parsedData.querySelector('title').textContent;
+  const feedDescription = parsedData.querySelector('description').textContent;
+  const feed = {
+    link: response.data.status.url,
+    title: feedTitle,
+    description: feedDescription,
+  };
+  const posts = parsePosts(parsedData, feedID);
+
+  return {feed, posts};
+};
+
+const updating = (state, i18nInstance) => {
+  if (state.feeds.length === 0) return ;
+
+  Promise.all(state.feeds.map(feed => makeRequest(feed.link)))
+      .then((responses) => {
+        responses.forEach((response) => {
+          const oldLinks = state.posts.map(post => post.link);
+          const { posts } = parseResponse(state, response);
+          const newPosts = posts.filter(post => !oldLinks.includes(post.link));
+          state.posts = [...newPosts, ...state.posts];
+        });
+        renderPosts(state, i18nInstance);
+      })
+      .catch((err) => {
+        console.log(`updating: ${ i18nInstance.t(`errors.${err.message}`) }`);
+      });
 };
 
 export default () => {
   const state = {
     form: {
-      state: 'filling',
+      isSuccess: null,
       isValide: null,
       input: {
           value: null,
       },
       error: '',
     },
-    elementsUI: {
-      input: document.querySelector('input'),
-      button: document.querySelector('button'),
-      form: document.querySelector('form'),
-      errorMsg: document.querySelector('p.errorMsg'),
+    elements: {
+      input: document.querySelector('#url-input'),
+      button: document.querySelector('.col-auto>.btn-primary'),
+      form: document.querySelector('.rss-form'),
+      feedback: document.querySelector('.feedback'),
+      postsList: document.querySelector('.posts'),
+      feedsList: document.querySelector('.feeds'),
+      modal: document.querySelector('.modal'),
+      modalTitle: document.querySelector('.modal-title'),
+      modalBody: document.querySelector('.modal-body'),
+      modalHref: document.querySelector('.full-article'),
     },
     feeds: [],
-    links: [],
+    viewedPostIds: [],
     posts: [],
   };
 
-  const watcher = onChange(state, ((path, value) => {
-    if (path === 'form.input.value') {
-      Promise.resolve(() => {
-        validation(value, state.feeds.map(feed => feed.link), i18nInstance);
-      })
-      .then(() => {
-        return makeRequest(value);
-      })
-      .then((response) => {
-        state.form.isValide = true;
-        state.links.push(value);
-        const normolizedPosts = getFeedPosts(watcher, response);
-
-        state.posts = state.posts.concat(normolizedPosts);
-      }).catch((err) => {
-        state.form.error = i18nInstance.t(err.message);
-        state.form.isValide = false;
-      })
-      .finally(() => {
-          render(state);
-          state.form.error = '';
-          state.form.input.value = '';
-      })
-      ;
-    }
-  }));
-
-  const updating = () => {
-    if (state.links.length > 0) {
-      Promise.all(state.links.map(link => makeRequest(link)))
-        .then((responses) => {
-          responses.forEach((response) => {
-            const oldLinks = state.posts.map(post => post.link);
-            const normolizedPosts = getFeedPosts(watcher, response);
-            const newPosts = normolizedPosts.filter(post => !oldLinks.includes(post.link));
-            state.posts = [...newPosts, ...state.posts];
-          });
-          render(state);
-        })
-        .catch((err) => {
-          console.log(`updating: ${i18nInstance.t(err.message)}`);
-        });
-    }
-  };
+  yup.setLocale({
+    string: {
+      url: () => ('notUrl'),
+      required: () => ('empty'),
+    },
+    mixed: {
+      notOneOf: () => ('empty'),
+    },
+  });
 
   const i18nInstance = i18n.createInstance();
+  const makeSchema = (validatedLinks) => yup.string()
+        .required()
+        .url()
+        .notOneOf(validatedLinks);
+  
+  const watcher = onChange(state, ((path, value) => {
+    if (path === 'form.input.value') {
+      const schema = makeSchema(state.feeds.map(feed => feed.link));
+
+      schema.validate(value)
+          .then(() => {
+            return makeRequest(value);
+          })
+          .then((response) => {
+            state.form.isValide = true;
+            state.form.isSuccess = true;
+            const {feed, posts} = parseResponse(watcher, response);
+            state.posts = [...posts, ...state.posts];
+            state.feeds.push(feed);
+          }).catch((err) => {
+            state.form.error = i18nInstance.t(`errors.${err.message}`);
+            state.form.isValide = false;
+          })
+          .finally(() => {
+              render(state, i18nInstance);
+              state.form.error = '';
+              state.form.input.value = '';
+          });
+    }
+  }));
 
   i18nInstance.init({
     lng: 'ru',
     debug: true,
     resources,
-  }).then(() => {
-    init(i18nInstance, state);
-
-    const form = document.querySelector('form');
-
-    const handler = (e) => {
+  }).then(() => {    
+    const submitHandler = (e) => {
       e.preventDefault();
-      const formData = new FormData(form);
-      const inputValue = formData.get('input');
+      const formData = new FormData(e.target);
+      const inputValue = formData.get('url');
       
       watcher.form.input.value = inputValue;
     }
-    
-    form.addEventListener('submit', handler);
-    
-    
+
+    state.elements.form.addEventListener('submit', submitHandler);
   });
 
-  setInterval(updating, 5000);
+  setInterval(updating, 5000, state, i18nInstance);
 };
