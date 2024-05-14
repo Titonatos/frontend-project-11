@@ -136,6 +136,7 @@ export default () => {
           state.posts = [...posts, ...state.posts];
           state.feeds.push(feed);
         }).catch((err) => {
+          console.log(state.form.input);
           state.form.error = i18nInstance.t(`errors.${err.message}`);
           state.form.isValide = false;
         })
@@ -147,19 +148,19 @@ export default () => {
     }
   }));
 
+  const submitHandler = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const inputValue = formData.get('url');
+
+    watcher.form.input.value = inputValue;
+  };
+
   i18nInstance.init({
     lng: 'ru',
     debug: true,
     resources,
   }).then(() => {
-    const submitHandler = (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const inputValue = formData.get('url');
-
-      watcher.form.input.value = inputValue;
-    };
-
     state.elements.form.addEventListener('submit', submitHandler);
   });
 
