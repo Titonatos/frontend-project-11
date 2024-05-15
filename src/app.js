@@ -47,7 +47,7 @@ const parseResponse = (state, response) => {
     throw new Error('notRss');
   }
 
-  console.log(response.data.status.url);
+  // console.log(response.data.status);
   console.log(response.data.contents);
   console.log(response.data);
 
