@@ -117,7 +117,7 @@ export default () => {
       required: () => ('empty'),
     },
     mixed: {
-      notOneOf: () => ('empty'),
+      notOneOf: () => ('alreadyInList'),
     },
   });
 
@@ -139,7 +139,8 @@ export default () => {
           const { feed, posts } = parseResponse(watcher, response);
           state.posts = [...posts, ...state.posts];
           state.feeds.push(feed);
-        }).catch((err) => {
+        })
+        .catch((err) => {
           console.log(`Input value when error: ${state.form.input.value}`);
           state.form.error = i18nInstance.t(`errors.${err.message}`);
           state.form.isValide = false;
