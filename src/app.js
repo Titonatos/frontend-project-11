@@ -47,9 +47,7 @@ const parseResponse = (state, response) => {
     throw new Error('notRss');
   }
 
-  console.log(`Response: ${response}`);
-  console.log(`response.data.status.url: ${response.data.status.url}`);
-  const feedID = state.feeds.map((feed) => feed.link).indexOf(response.data.status.url);
+  const feedID = state.feeds.map((feed) => feed.link).indexOf(state.form.input.value);
   const feedTitle = parsedData.querySelector('title').textContent;
   const feedDescription = parsedData.querySelector('description').textContent;
   const feed = {
