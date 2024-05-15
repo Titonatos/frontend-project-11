@@ -47,10 +47,6 @@ const parseResponse = (state, response) => {
     throw new Error('notRss');
   }
 
-  // console.log(response.data.status);
-  console.log(response.data.contents);
-  console.log(response.data);
-
   const feedID = state.feeds.map((feed) => feed.link).indexOf(state.form.input.value);
   const feedTitle = parsedData.querySelector('title').textContent;
   const feedDescription = parsedData.querySelector('description').textContent;
@@ -141,7 +137,6 @@ export default () => {
           state.feeds.push(feed);
         })
         .catch((err) => {
-          console.log(`Input value when error: ${state.form.input.value}`);
           state.form.error = i18nInstance.t(`errors.${err.message}`);
           state.form.isValide = false;
         })
