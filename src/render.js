@@ -131,12 +131,12 @@ export const renderPosts = (state, i18next) => {
 export const render = (state, instance) => {
   const { feedback } = state.elements;
 
-  if (state.form.isValide && state.form.isSuccess) {
+  if (state.form.state === 'processed') {
     state.elements.form.reset();
     feedback.textContent = instance.t('status.success');
     feedback.classList.remove('text-danger');
     feedback.classList.add('text-success');
-  } else {
+  } else if (state.form.state === 'failed') {
     feedback.textContent = state.form.error;
     feedback.classList.remove('text-success');
     feedback.classList.add('text-danger');

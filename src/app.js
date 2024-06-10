@@ -2,27 +2,9 @@ import onChange from 'on-change';
 import i18n from 'i18next';
 import * as yup from 'yup';
 import axios from 'axios';
-import { uniqueId } from 'lodash';
 import resources from './locales/index.js';
 import { render, renderPosts } from './render.js';
-
-const parsePosts = (parsedData, feedID) => {
-  const posts = [];
-
-  parsedData.querySelectorAll('item').forEach((item) => {
-    const title = item.querySelector('title').textContent;
-    const description = item.querySelector('description').textContent;
-    const link = item.querySelector('link').textContent;
-    const id = uniqueId();
-    const newPost = {
-      id, feedID, title, description, link,
-    };
-
-    posts.push(newPost);
-  });
-
-  return posts;
-};
+import parseResponse from './parser.js';
 
 const addProxy = (url) => {
   const proxyUrl = new URL('/get', 'https://allorigins.hexlet.app');
@@ -38,30 +20,6 @@ const makeRequest = (link) => axios.get(addProxy(link), { timeout: 5000 })
     throw Error('networkError');
   });
 
-const parseResponse = (state, response) => {
-  const responseContent = response.data.contents;
-  const parser = new DOMParser();
-  const parsedData = parser.parseFromString(responseContent, 'text/xml');
-
-  if (parsedData.querySelector('parsererror')) {
-    throw new Error('notRss');
-  }
-
-  const feedID = state.feeds.map((feed) => feed.link).indexOf(state.form.input.value);
-  const feedTitle = parsedData.querySelector('title').textContent;
-  const feedDescription = parsedData.querySelector('description').textContent;
-  const feed = {
-    link: state.form.input.value,
-    title: feedTitle,
-    description: feedDescription,
-  };
-  const posts = parsePosts(parsedData, feedID);
-
-  return {
-    feed, posts,
-  };
-};
-
 const updating = (state, i18nInstance) => {
   if (state.feeds.length === 0) return null;
 
@@ -76,15 +34,14 @@ const updating = (state, i18nInstance) => {
       renderPosts(state, i18nInstance);
     })
     .catch((err) => {
-      console.log(`updating: ${i18nInstance.t(`errors.${err.message}`)}`);
+      console.error(`updating: ${i18nInstance.t(`errors.${err.message}`)}`);
     });
 };
 
 export default () => {
   const state = {
     form: {
-      isSuccess: null,
-      isValide: null,
+      state: 'filling',
       input: {
         value: null,
       },
@@ -130,15 +87,14 @@ export default () => {
       schema.validate(value)
         .then(() => makeRequest(value))
         .then((response) => {
-          state.form.isValide = true;
-          state.form.isSuccess = true;
           const { feed, posts } = parseResponse(watcher, response);
           state.posts = [...posts, ...state.posts];
           state.feeds.push(feed);
+          state.form.state = 'processed';
         })
         .catch((err) => {
           state.form.error = i18nInstance.t(`errors.${err.message}`);
-          state.form.isValide = false;
+          state.form.state = 'failed';
         })
         .finally(() => {
           render(state, i18nInstance);
