@@ -11,7 +11,7 @@ const createButton = (id, state, instance) => {
     e.target.previousSibling.classList.remove('fw-bold');
     e.target.previousSibling.classList.add('fw-normal');
 
-    state.viewedPostIds.push(currentPost.id);
+    state.viewedPostIds.add(currentPost.id);
   };
 
   button.setAttribute('type', 'button');
@@ -45,7 +45,7 @@ const createPosts = (state, instance) => {
     a.setAttribute('rel', 'noopener noreferrer');
     a.textContent = post.title;
 
-    if (state.viewedPostIds.includes(post.id)) {
+    if (state.viewedPostIds.has(post.id)) {
       a.classList.add('fw-normal');
     } else {
       a.classList.add('fw-bold');

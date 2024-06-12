@@ -60,7 +60,7 @@ export default () => {
       modalHref: document.querySelector('.full-article'),
     },
     feeds: [],
-    viewedPostIds: [],
+    viewedPostIds: new Set(),
     posts: [],
   };
 
@@ -81,13 +81,14 @@ export default () => {
     .notOneOf(validatedLinks);
 
   const watcher = onChange(state, ((path, value) => {
-    if (path === 'form.input.value') {
+    if (path === 'form.state' && value === 'submited') {
       const schema = makeSchema(state.feeds.map((feed) => feed.link));
+      const inputValue = state.elements.input.value;
 
-      schema.validate(value)
-        .then(() => makeRequest(value))
+      schema.validate(inputValue)
+        .then(() => makeRequest(inputValue))
         .then((response) => {
-          const { feed, posts } = parseResponse(watcher, response);
+          const { feed, posts } = parseResponse(state, response);
           state.posts = [...posts, ...state.posts];
           state.feeds.push(feed);
           state.form.state = 'processed';
@@ -99,17 +100,13 @@ export default () => {
         .finally(() => {
           render(state, i18nInstance);
           state.form.error = '';
-          state.form.input.value = '';
         });
     }
   }));
 
   const submitHandler = (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const inputValue = formData.get('url');
-
-    watcher.form.input.value = inputValue;
+    watcher.form.state = 'submited';
   };
 
   i18nInstance.init({
