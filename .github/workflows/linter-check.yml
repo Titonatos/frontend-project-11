@@ -1,6 +1,6 @@
 name: linter-check
 
-on: push:
+on: push
 
 jobs:
   makeLint:
