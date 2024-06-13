@@ -1,0 +1,12 @@
+name: linter-check
+
+on: push:
+
+jobs:
+  makeLint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Start linter
+        run: make lint
