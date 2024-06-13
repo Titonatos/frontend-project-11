@@ -22,8 +22,10 @@ const parseResponse = (state, response) => {
   const responseContent = response.data.contents;
   const parser = new DOMParser();
   const parsedData = parser.parseFromString(responseContent, 'text/xml');
+  const errorNode = parsedData.querySelector('parsererror');
 
-  if (parsedData.querySelector('parsererror')) {
+  if (errorNode) {
+    console.error(errorNode.querySelector('div').textContent);
     throw new Error('notRss');
   }
 

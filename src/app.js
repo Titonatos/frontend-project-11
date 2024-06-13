@@ -75,6 +75,12 @@ export default () => {
   });
 
   const i18nInstance = i18n.createInstance();
+  i18nInstance.init({
+    lng: 'ru',
+    debug: true,
+    resources,
+  });
+
   const makeSchema = (validatedLinks) => yup.string()
     .required()
     .url()
@@ -109,13 +115,7 @@ export default () => {
     watcher.form.state = 'submited';
   };
 
-  i18nInstance.init({
-    lng: 'ru',
-    debug: true,
-    resources,
-  }).then(() => {
-    state.elements.form.addEventListener('submit', submitHandler);
-  });
+  state.elements.form.addEventListener('submit', submitHandler);
 
   setInterval(updating, 5000, state, i18nInstance);
 };
