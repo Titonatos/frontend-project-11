@@ -2,7 +2,7 @@
 
 [![Actions Status](https://github.com/Titonatos/frontend-project-11/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/Titonatos/frontend-project-11/actions)
 [![Maintainability](https://api.codeclimate.com/v1/badges/d31a2a82c6efdac3280b/maintainability)](https://codeclimate.com/github/Titonatos/frontend-project-11/maintainability)
-
+[![Linter](https://github.com/Titonatos/frontend-project-11/actions/workflows/linter-check.yml/badge.svg?event=push)](https://github.com/Titonatos/frontend-project-11/actions/workflows/linter-check.yml)
 
 ## Description
 Simple feed aggregator, which collect RSS feeds and then watched for a new posts.
