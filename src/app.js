@@ -20,18 +20,18 @@ const makeRequest = (link) => axios.get(addProxy(link), { timeout: 5000 })
     throw Error('networkError');
   });
 
-const updating = (state, i18nInstance) => {
+const updating = (state, i18nInstance, elements) => {
   if (state.feeds.length === 0) return null;
 
   return Promise.all(state.feeds.map((feed) => makeRequest(feed.link)))
     .then((responses) => {
       responses.forEach((response) => {
         const oldLinks = state.posts.map((post) => post.link);
-        const { posts } = parseResponse(state, response);
+        const { posts } = parseResponse(state, response, elements);
         const newPosts = posts.filter((post) => !oldLinks.includes(post.link));
         state.posts = [...newPosts, ...state.posts];
       });
-      renderPosts(state, i18nInstance);
+      renderPosts(state, i18nInstance, elements);
     })
     .catch((err) => {
       console.error(`updating: ${i18nInstance.t(`errors.${err.message}`)}`);
@@ -42,22 +42,7 @@ export default () => {
   const state = {
     form: {
       state: 'filling',
-      input: {
-        value: null,
-      },
-      error: '',
-    },
-    elements: {
-      input: document.querySelector('#url-input'),
-      button: document.querySelector('.col-auto>.btn-primary'),
-      form: document.querySelector('.rss-form'),
-      feedback: document.querySelector('.feedback'),
-      postsList: document.querySelector('.posts'),
-      feedsList: document.querySelector('.feeds'),
-      modal: document.querySelector('.modal'),
-      modalTitle: document.querySelector('.modal-title'),
-      modalBody: document.querySelector('.modal-body'),
-      modalHref: document.querySelector('.full-article'),
+      error: null,
     },
     feeds: [],
     viewedPostIds: new Set(),
@@ -86,15 +71,28 @@ export default () => {
     .url()
     .notOneOf(validatedLinks);
 
+  const elements = {
+    input: document.querySelector('#url-input'),
+    button: document.querySelector('.col-auto>.btn-primary'),
+    form: document.querySelector('.rss-form'),
+    feedback: document.querySelector('.feedback'),
+    postsList: document.querySelector('.posts'),
+    feedsList: document.querySelector('.feeds'),
+    modal: document.querySelector('.modal'),
+    modalTitle: document.querySelector('.modal-title'),
+    modalBody: document.querySelector('.modal-body'),
+    modalHref: document.querySelector('.full-article'),
+  };
+
   const watcher = onChange(state, ((path, value) => {
     if (path === 'form.state' && value === 'submited') {
       const schema = makeSchema(state.feeds.map((feed) => feed.link));
-      const inputValue = state.elements.input.value;
+      const inputValue = elements.input.value;
 
       schema.validate(inputValue)
         .then(() => makeRequest(inputValue))
         .then((response) => {
-          const { feed, posts } = parseResponse(state, response);
+          const { feed, posts } = parseResponse(state, response, elements);
           state.posts = [...posts, ...state.posts];
           state.feeds.push(feed);
           state.form.state = 'processed';
@@ -104,7 +102,7 @@ export default () => {
           state.form.state = 'failed';
         })
         .finally(() => {
-          render(state, i18nInstance);
+          render(state, i18nInstance, elements);
           state.form.error = '';
         });
     }
@@ -115,7 +113,7 @@ export default () => {
     watcher.form.state = 'submited';
   };
 
-  state.elements.form.addEventListener('submit', submitHandler);
+  elements.form.addEventListener('submit', submitHandler);
 
-  setInterval(updating, 5000, state, i18nInstance);
+  setInterval(updating, 5000, state, i18nInstance, elements);
 };

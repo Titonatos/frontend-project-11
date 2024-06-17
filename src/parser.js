@@ -1,24 +1,26 @@
 import { uniqueId } from 'lodash';
 
-const parsePosts = (parsedData, feedID) => {
+const parsePost = (postData, feedID) => {
+  const title = postData.querySelector('title').textContent;
+  const description = postData.querySelector('description').textContent;
+  const link = postData.querySelector('link').textContent;
+  const id = uniqueId();
+  return {
+    id, feedID, title, description, link,
+  };
+};
+
+const makePosts = (parsedData, feedID) => {
   const posts = [];
 
   parsedData.querySelectorAll('item').forEach((item) => {
-    const title = item.querySelector('title').textContent;
-    const description = item.querySelector('description').textContent;
-    const link = item.querySelector('link').textContent;
-    const id = uniqueId();
-    const newPost = {
-      id, feedID, title, description, link,
-    };
-
-    posts.push(newPost);
+    posts.push(parsePost(item, feedID));
   });
 
   return posts;
 };
 
-const parseResponse = (state, response) => {
+const parseResponse = (state, response, elements) => {
   const responseContent = response.data.contents;
   const parser = new DOMParser();
   const parsedData = parser.parseFromString(responseContent, 'text/xml');
@@ -29,15 +31,15 @@ const parseResponse = (state, response) => {
     throw new Error('notRss');
   }
 
-  const feedID = state.feeds.map((feed) => feed.link).indexOf(state.elements.input.value);
+  const feedID = state.feeds.map((feed) => feed.link).indexOf(elements.input.value);
   const feedTitle = parsedData.querySelector('title').textContent;
   const feedDescription = parsedData.querySelector('description').textContent;
   const feed = {
-    link: state.elements.input.value,
+    link: elements.input.value,
     title: feedTitle,
     description: feedDescription,
   };
-  const posts = parsePosts(parsedData, feedID);
+  const posts = makePosts(parsedData, feedID);
 
   return {
     feed, posts,

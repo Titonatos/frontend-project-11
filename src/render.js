@@ -1,8 +1,8 @@
-const createButton = (id, state, instance) => {
+const createButton = (id, state, instance, elements) => {
   const button = document.createElement('button');
   const modalHadler = (e) => {
     const currentPost = state.posts.find((post) => post.id === e.target.dataset.id);
-    const { modalBody, modalTitle, modalHref } = state.elements;
+    const { modalBody, modalTitle, modalHref } = elements;
 
     modalTitle.textContent = currentPost.title;
     modalBody.textContent = currentPost.description;
@@ -25,13 +25,11 @@ const createButton = (id, state, instance) => {
   return button;
 };
 
-const createPosts = (state, instance) => {
-  const posts = [];
-
-  state.posts.forEach((post) => {
+const createPosts = (state, instance, elements) => {
+  const posts = state.posts.map((post) => {
     const li = document.createElement('li');
     const a = document.createElement('a');
-    const button = createButton(post.id, state, instance);
+    const button = createButton(post.id, state, instance, elements);
     const linkHandler = ({ target }) => {
       target.classList.remove('fw-bold');
       target.classList.add('fw-normal');
@@ -54,7 +52,7 @@ const createPosts = (state, instance) => {
     a.addEventListener('click', linkHandler);
     li.append(a);
     li.append(button);
-    posts.push(li);
+    return li;
   });
 
   return posts;
@@ -82,7 +80,7 @@ const createFeeds = (state) => {
   return feeds;
 };
 
-const createList = (itemsType, state, i18next) => {
+const createList = (itemsType, state, i18next, elements) => {
   const card = document.createElement('div');
   const cardBody = document.createElement('div');
   const cardTitle = document.createElement('h2');
@@ -103,7 +101,7 @@ const createList = (itemsType, state, i18next) => {
       list.append(...createFeeds(state));
       break;
     case 'posts':
-      list.append(...createPosts(state, i18next));
+      list.append(...createPosts(state, i18next, elements));
       break;
     default:
       break;
@@ -114,25 +112,23 @@ const createList = (itemsType, state, i18next) => {
   return card;
 };
 
-const renderFeeds = (state, i18next) => {
-  const feeds = createList('feeds', state, i18next);
+const renderFeeds = (state, i18next, elements) => {
+  const feeds = createList('feeds', state, i18next, elements);
 
-  state.elements.feedsList.innerHTML = '';
-  state.elements.feedsList.append(feeds);
+  elements.feedsList.replaceChildren(feeds);
 };
 
-export const renderPosts = (state, i18next) => {
-  const posts = createList('posts', state, i18next);
+export const renderPosts = (state, i18next, elements) => {
+  const posts = createList('posts', state, i18next, elements);
 
-  state.elements.postsList.innerHTML = '';
-  state.elements.postsList.append(posts);
+  elements.postsList.replaceChildren(posts);
 };
 
-export const render = (state, instance) => {
-  const { feedback } = state.elements;
+export const render = (state, instance, elements) => {
+  const { feedback } = elements;
 
   if (state.form.state === 'processed') {
-    state.elements.form.reset();
+    elements.form.reset();
     feedback.textContent = instance.t('status.success');
     feedback.classList.remove('text-danger');
     feedback.classList.add('text-success');
@@ -143,7 +139,7 @@ export const render = (state, instance) => {
   }
 
   if (state.posts.length > 0) {
-    renderFeeds(state, instance);
-    renderPosts(state, instance);
+    renderFeeds(state, instance, elements);
+    renderPosts(state, instance, elements);
   }
 };
